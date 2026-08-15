@@ -1,0 +1,33 @@
+warning: the transform cache was reset.
+                Welcome to Metro v0.80.12
+              Fast - Scalable - Integrated
+
+
+error Unable to resolve module @sentry/react-native from /Users/alex/nopubly_local/index.js: @sentry/react-native could not be found within the project or in these directories:
+  node_modules
+[0m [90m  6 |[39m [36mimport[39m [33mApp[39m [36mfrom[39m [32m'./App'[39m[33m;[39m
+ [90m  7 |[39m [36mimport[39m { name [36mas[39m appName } [36mfrom[39m [32m'./app.json'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  8 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mSentry[39m [36mfrom[39m [32m'@sentry/react-native'[39m[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m
+ [90m  9 |[39m
+ [90m 10 |[39m [33mSentry[39m[33m.[39minit({
+ [90m 11 |[39m     dsn[33m:[39m [32m'https://bdac92d36b0fc144ecabb32cce75a5a6@o4510733151436800.ingest.de.sentry.io/4510783476138064'[39m[33m,[39m[0m.
+Error: Unable to resolve module @sentry/react-native from /Users/alex/nopubly_local/index.js: @sentry/react-native could not be found within the project or in these directories:
+  node_modules
+[0m [90m  6 |[39m [36mimport[39m [33mApp[39m [36mfrom[39m [32m'./App'[39m[33m;[39m
+ [90m  7 |[39m [36mimport[39m { name [36mas[39m appName } [36mfrom[39m [32m'./app.json'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  8 |[39m [36mimport[39m [33m*[39m [36mas[39m [33mSentry[39m [36mfrom[39m [32m'@sentry/react-native'[39m[33m;[39m
+ [90m    |[39m                          [31m[1m^[22m[39m
+ [90m  9 |[39m
+ [90m 10 |[39m [33mSentry[39m[33m.[39minit({
+ [90m 11 |[39m     dsn[33m:[39m [32m'https://bdac92d36b0fc144ecabb32cce75a5a6@o4510733151436800.ingest.de.sentry.io/4510783476138064'[39m[33m,[39m[0m
+    at ModuleResolver.resolveDependency (/Users/alex/nopubly_local/node_modules/metro/src/node-haste/DependencyGraph/ModuleResolution.js:139:15)
+    at DependencyGraph.resolveDependency (/Users/alex/nopubly_local/node_modules/metro/src/node-haste/DependencyGraph.js:232:43)
+    at /Users/alex/nopubly_local/node_modules/metro/src/lib/transformHelpers.js:156:21
+    at resolveDependencies (/Users/alex/nopubly_local/node_modules/metro/src/DeltaBundler/buildSubgraph.js:42:25)
+    at visit (/Users/alex/nopubly_local/node_modules/metro/src/DeltaBundler/buildSubgraph.js:83:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 0)
+    at async buildSubgraph (/Users/alex/nopubly_local/node_modules/metro/src/DeltaBundler/buildSubgraph.js:103:3)
+    at async Graph._buildDelta (/Users/alex/nopubly_local/node_modules/metro/src/DeltaBundler/Graph.js:157:22)
+    at async Graph.initialTraverseDependencies (/Users/alex/nopubly_local/node_modules/metro/src/DeltaBundler/Graph.js:140:19)

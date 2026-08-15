@@ -1,0 +1,33 @@
+buildscript {
+    ext {
+        buildToolsVersion = "34.0.0"
+        minSdkVersion = 23
+        compileSdkVersion = 34
+        targetSdkVersion = 34
+        ndkVersion = "25.1.8937393"
+        kotlinVersion = "1.9.22"
+        playServicesVersion = "18.1.0"
+        playBillingSdkVersion = "6.0.1"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.2.2")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    }
+}
+
+allprojects {
+    configurations.all {
+        if (name == "androidJdkImage") {
+            attributes {
+                attribute(Attribute.of("artifactType", String.class), "android-jdk-image")
+            }
+        }
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"
