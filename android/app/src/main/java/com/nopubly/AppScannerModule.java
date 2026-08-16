@@ -231,10 +231,10 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         // Apply discounts
         if (isSecurityApp) {
             score = (int) (score * 0.3); // High confidence in security apps
-        } else if (isFromPlayStore && !isPUP) {
-            // ONLY trust Play Store if it's NOT a PUP/Adware candidate
+        } else if (isFromPlayStore) {
+            // High trust for Play Store
             if (isCleanOnCloud) {
-                if (hasOverlay && hasInternet) {
+                if (hasOverlay && hasAdmin) {
                     // Suspicious combination even if from Play Store
                     score = (int) (score * 0.4);
                 } else {
@@ -242,7 +242,7 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                     score = (int) (score * 0.1);
                 }
             } else {
-                score = (int) (score * 0.6); // Moderate confidence in Play Store
+                score = (int) (score * 0.5); // Moderate confidence in Play Store
             }
         } else if (isCleanOnCloud && !isPUP) {
             // Sideloaded but clean on Cloud and not a PUP
@@ -274,39 +274,13 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         PackageManager pm = reactContext.getPackageManager();
         String lowerLabel = pkg.applicationInfo.loadLabel(pm).toString().toLowerCase();
 
-        return lowerPkg.contains("cleaner") || lowerLabel.contains("cleaner") ||
-                lowerPkg.contains("optimizer") || lowerLabel.contains("optimizer") ||
+        // Only target highly specific aggressive keywords usually associated with fake cleaner PUPs
+        return lowerPkg.contains("optimizer") || lowerLabel.contains("optimizer") ||
                 lowerPkg.contains("boost") || lowerLabel.contains("boost") ||
-                lowerPkg.contains("master") || lowerLabel.contains("master") ||
                 lowerPkg.contains("accelerate") || lowerLabel.contains("accelerate") ||
                 lowerPkg.contains("speedup") || lowerLabel.contains("speedup") ||
-                lowerPkg.contains("battery") || lowerLabel.contains("battery") ||
-                lowerPkg.contains("adware") || lowerLabel.contains("adware") ||
-                lowerPkg.contains("doge") || lowerLabel.contains("doge") ||
-                lowerPkg.contains("puzzle") || lowerLabel.contains("puzzle") ||
-                lowerPkg.contains("draw") || lowerLabel.contains("draw") ||
-                lowerPkg.contains("clean") || lowerLabel.contains("clean") ||
-                lowerPkg.contains("lector") || lowerLabel.contains("lector") ||
-                lowerPkg.contains("reader") || lowerLabel.contains("reader") ||
-                lowerPkg.contains("pdf") || lowerLabel.contains("pdf") ||
-                lowerPkg.contains("viewer") || lowerLabel.contains("viewer") ||
-                lowerPkg.contains("scanner") || lowerLabel.contains("scanner") ||
-                lowerPkg.contains("flashlight") || lowerLabel.contains("flashlight") ||
-                lowerPkg.contains("luz") || lowerLabel.contains("luz") ||
-                lowerPkg.contains("qr") || lowerLabel.contains("qr") ||
-                lowerPkg.contains("flash") || lowerLabel.contains("flash") ||
-                lowerPkg.contains("mega") || lowerLabel.contains("mega") ||
-                lowerPkg.contains("ultra") || lowerLabel.contains("ultra") ||
-                lowerPkg.contains("super") || lowerLabel.contains("super") ||
-                lowerPkg.contains("plus") || lowerLabel.contains("plus") ||
-                lowerPkg.contains("turbo") || lowerLabel.contains("turbo") ||
-                lowerPkg.contains("lite") || lowerLabel.contains("lite") ||
-                lowerPkg.contains("free") || lowerLabel.contains("free") ||
-                lowerPkg.contains("editor") || lowerLabel.contains("editor") ||
-                lowerPkg.contains("converter") || lowerLabel.contains("converter") ||
-                lowerPkg.contains("doc") || lowerLabel.contains("doc") ||
-                lowerPkg.contains("office") || lowerLabel.contains("office") ||
-                lowerPkg.contains("more.save");
+                lowerPkg.contains("battery-saver") || lowerLabel.contains("battery-saver") ||
+                lowerPkg.contains("ram-cleaner") || lowerLabel.contains("ram-cleaner");
     }
 
     private boolean isSignedByGooglePlay(PackageInfo packageInfo) {
@@ -360,9 +334,9 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
     private String getRiskLabel(int score) {
         if (score >= 100)
             return "CRITICAL";
-        if (score >= 70)
+        if (score >= 75)
             return "HIGH";
-        if (score >= 40)
+        if (score >= 50)
             return "SUSPICIOUS";
         return "SAFE";
     }
