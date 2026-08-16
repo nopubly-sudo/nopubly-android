@@ -53,7 +53,7 @@ function App(): React.JSX.Element {
     const [isLoading, setIsLoading] = useState(true);
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showPricing, setShowPricing] = useState(false);
-    const [isPro, setIsPro] = useState(false);
+    const [isPro, setIsPro] = useState(true); // Siempre true en la versión 100% gratuita
     const [lastBlocklistUpdate, setLastBlocklistUpdate] = useState<string>('Never');
     const [lastAutoScan, setLastAutoScan] = useState<string>('Never');
     const [securityScore, setSecurityScore] = useState(0);
@@ -440,7 +440,7 @@ function App(): React.JSX.Element {
             showAlert(t.apkDetected, t.apkScanInfo, 'info');
 
             try {
-                // Unified Cloud Intelligence API
+                // Unified Artificial Intelligence API
                 const response = await fetch(`https://api.nopubly.com/api/malware/check?hash=${event.hash}`);
                 const data = await response.json();
 
@@ -640,6 +640,21 @@ function App(): React.JSX.Element {
                 const now = Date.now().toString();
                 setLastAutoScan(now);
                 AsyncStorage.setItem('lastAutoScan', now);
+
+                // --- BIG DATA TELEMETRY ---
+                // Send anonymized scan results to our AI learning backend
+                AppScannerModule.getDeviceId().then((deviceId: string) => {
+                    fetch('https://api.nopubly.com/api/telemetry', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            deviceId: deviceId,
+                            os: 'Android',
+                            apps: apps // Currently sends suspicious apps, can be expanded to all apps in native later
+                        })
+                    }).catch(err => console.log('Telemetry error:', err));
+                });
+
             }, 500);
         } catch (e) {
             console.error(e);
@@ -1007,10 +1022,7 @@ function App(): React.JSX.Element {
     };
 
     const handleContactSupport = async () => {
-        if (!isPro) {
-            setShowPricing(true);
-            return;
-        }
+        // El usuario ya es PRO (100% Gratis)
 
         try {
             // Collect recent logs
