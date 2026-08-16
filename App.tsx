@@ -63,6 +63,7 @@ function App(): React.JSX.Element {
         updated: false,
         scanned: false
     });
+    const [hasConsent, setHasConsent] = useState<boolean | null>(null);
 
     // Protection state
     const [isProtectionOn, setIsProtectionOn] = useState(false);
@@ -189,10 +190,17 @@ function App(): React.JSX.Element {
                 setIsPro(proStatus);
                 await BillingService.init();
 
-                // 2. Check first launch
+                // 2. Check first launch and consent
                 const hasLaunched = await AsyncStorage.getItem('hasLaunched');
                 if (hasLaunched === null) {
                     setShowOnboarding(true);
+                }
+                const savedConsent = await AsyncStorage.getItem('telemetryConsent');
+                if (savedConsent !== null) {
+                    setHasConsent(savedConsent === 'true');
+                } else if (hasLaunched !== null) {
+                    // Show consent dialog on first launch after onboarding, or immediately if already launched but no consent
+                    promptConsent();
                 }
 
                 // 3. Daily Auto-Scan Check (Pro Only)
@@ -529,12 +537,44 @@ function App(): React.JSX.Element {
         calculateHealth();
     }, [riskyApps.length, isProtectionOn, lastBlocklistUpdate, lastAutoScan]);
 
+    const promptConsent = () => {
+        Alert.alert(
+            "Acuerdo de Privacidad (IA)",
+            "Para mejorar nuestra Inteligencia Artificial y detectar nuevas amenazas, Nopubly recopila de forma anónima la lista de aplicaciones instaladas y hashes al finalizar los escaneos.\n\n¿Aceptas compartir estos datos para ayudar a la ciberseguridad global? (Puedes usar el antivirus localmente aunque rechaces).",
+            [
+                {
+                    text: "Rechazar",
+                    style: "cancel",
+                    onPress: () => {
+                        AsyncStorage.setItem('telemetryConsent', 'false');
+                        setHasConsent(false);
+                    }
+                },
+                {
+                    text: "Aceptar",
+                    onPress: () => {
+                        AsyncStorage.setItem('telemetryConsent', 'true');
+                        setHasConsent(true);
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    };
+
     // Initial load
     useEffect(() => {
         const loadState = async () => {
             try {
                 const savedScan = await AsyncStorage.getItem('lastAutoScan');
                 if (savedScan) setLastAutoScan(savedScan);
+
+                const consent = await AsyncStorage.getItem('telemetryConsent');
+                if (consent === null) {
+                    promptConsent();
+                } else {
+                    setHasConsent(consent === 'true');
+                }
 
                 // Trigger calculation after load
                 calculateHealth();
@@ -642,18 +682,19 @@ function App(): React.JSX.Element {
                 AsyncStorage.setItem('lastAutoScan', now);
 
                 // --- BIG DATA TELEMETRY ---
-                // Send anonymized scan results to our AI learning backend
-                AppScannerModule.getDeviceId().then((deviceId: string) => {
-                    fetch('https://api.nopubly.com/api/telemetry', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            deviceId: deviceId,
-                            os: 'Android',
-                            apps: apps // Currently sends suspicious apps, can be expanded to all apps in native later
-                        })
-                    }).catch(err => console.log('Telemetry error:', err));
-                });
+                if (hasConsent) {
+                    AppScannerModule.getDeviceId().then((deviceId: string) => {
+                        fetch('https://api.nopubly.com/api/telemetry', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                deviceId: deviceId,
+                                os: 'Android',
+                                apps: apps
+                            })
+                        }).catch(err => console.log('Telemetry error:', err));
+                    });
+                }
 
             }, 500);
         } catch (e) {
