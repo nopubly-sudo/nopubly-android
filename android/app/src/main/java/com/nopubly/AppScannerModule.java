@@ -202,10 +202,20 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
             score += 20;
         if (hasLocation)
             score += 10;
-        if (hasBoot && hasOverlay)
+        if (hasBoot && hasOverlay) {
             score += 30; // Persistence
+            if (hasInternet && !isSecurityApp) {
+                score += 35; // Adware Agresivo (Overlay + Boot + Internet)
+            }
+        }
         if (hasAdmin)
             score += 60; // Persistence & Ransomware
+
+        // Layer 9: Screen Hijacker Detection
+        boolean isLauncher = isLauncherApp(packageInfo.packageName);
+        if (isLauncher && hasOverlay && !isSecurityApp) {
+            score += 80; // CRITICAL: Launcher que pone ventanas flotantes (Secuestrador de Pantalla)
+        }
 
         // Layer 7: PUP & Adware Detection (V36.7 Upgrade)
         boolean isPUP = isPUPApp(packageInfo.packageName, packageInfo);
@@ -339,6 +349,23 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         if (score >= 50)
             return "SUSPICIOUS";
         return "SAFE";
+    }
+
+    private boolean isLauncherApp(String packageName) {
+        try {
+            PackageManager pm = reactContext.getPackageManager();
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_MAIN);
+            intent.addCategory(android.content.Intent.CATEGORY_HOME);
+            java.util.List<android.content.pm.ResolveInfo> resolveInfos = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+            for (android.content.pm.ResolveInfo info : resolveInfos) {
+                if (info.activityInfo != null && packageName.equals(info.activityInfo.packageName)) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Safe fallback
+        }
+        return false;
     }
 
     private void addHeuristics(PackageInfo pkg, PackageManager pm, WritableArray heuristics) {
