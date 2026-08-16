@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 import * as IAP from 'react-native-iap';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -119,6 +119,11 @@ class BillingService {
      */
     public async setProStatus(isPro: boolean): Promise<void> {
         await AsyncStorage.setItem(PRO_PLAN_STATUS_KEY, JSON.stringify(isPro));
+        try {
+            await NativeModules.AppScannerModule.setProStatus(isPro);
+        } catch (e) {
+            console.warn('N-CORE IAP: Failed to sync pro status to native module', e);
+        }
     }
 
     /**

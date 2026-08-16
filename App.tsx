@@ -188,6 +188,7 @@ function App(): React.JSX.Element {
                 // 1. Check Pro Status
                 const proStatus = await BillingService.getProStatus();
                 setIsPro(proStatus);
+                try { await AppScannerModule.setProStatus(proStatus); } catch (e) {}
                 await BillingService.init();
 
                 // 2. Check first launch and consent
@@ -942,6 +943,7 @@ function App(): React.JSX.Element {
             if (data.success) {
                 setIsPro(true);
                 await AsyncStorage.setItem('isPro', 'true');
+                try { await AppScannerModule.setProStatus(true); } catch (e) {}
                 showAlert('✅ ' + t.success, 'License activated successfully!', 'success');
             } else {
                 showAlert('❌ ' + t.error, data.message || 'Invalid license key.', 'error');

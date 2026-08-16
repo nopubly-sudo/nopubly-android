@@ -12,6 +12,7 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import android.content.Context;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.WritableArray;
@@ -72,6 +73,17 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void setProStatus(boolean isPro, Promise promise) {
+        try {
+            android.content.SharedPreferences prefs = reactContext.getSharedPreferences("NopublyPrefs", Context.MODE_PRIVATE);
+            prefs.edit().putBoolean("isPro", isPro).apply();
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("PREFS_ERROR", e);
+        }
+    }
+
+    @ReactMethod
     public void scanInstalledApps(ReadableArray trustedPackages, Promise promise) {
         new Thread(() -> {
             try {
@@ -115,7 +127,7 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                                     com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                             .emit("ScanProgress", progressData);
 
-                    int score = calculateRiskScore(pkg);
+                    int score = calculateRiskScore(reactContext, pkg, cloudIntel);
 
                     // Flag if score >= 40 (standard threshold)
                     if (score >= 40) {
@@ -141,12 +153,12 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         }).start();
     }
 
-    private int calculateRiskScore(PackageInfo packageInfo) {
+    public static int calculateRiskScore(Context context, PackageInfo packageInfo, CloudIntelligenceClient cloudIntel) {
         // Layer 4: Security App identification
         boolean isSecurityApp = isSecurityApp(packageInfo.packageName);
 
         // Layer 5: Play Store verification
-        boolean isFromPlayStore = isSignedByGooglePlay(packageInfo);
+        boolean isFromPlayStore = isSignedByGooglePlay(context, packageInfo);
 
         int score = 0;
         String[] permissions = packageInfo.requestedPermissions;
@@ -212,19 +224,19 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
             score += 60; // Persistence & Ransomware
 
         // Layer 9: Screen Hijacker Detection
-        boolean isLauncher = isLauncherApp(packageInfo.packageName);
+        boolean isLauncher = isLauncherApp(context, packageInfo.packageName);
         if (isLauncher && hasOverlay && !isSecurityApp) {
             score += 80; // CRITICAL: Launcher que pone ventanas flotantes (Secuestrador de Pantalla)
         }
 
         // Layer 7: PUP & Adware Detection (V36.7 Upgrade)
-        boolean isPUP = isPUPApp(packageInfo.packageName, packageInfo);
+        boolean isPUP = isPUPApp(context, packageInfo.packageName, packageInfo);
         if (isPUP) {
             score += 45; // Automatic flag for suspicious "cleaners/optimizers"
         }
 
         // Layer 8: Hidden App Detection (No Launcher Icon)
-        boolean isHidden = isHiddenApp(packageInfo);
+        boolean isHidden = isHiddenApp(context, packageInfo);
         if (isHidden && !isSecurityApp && (hasInternet || hasBoot)) {
             score += 80; // Critical: Hidden background persistence
         }
@@ -267,7 +279,7 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         return score;
     }
 
-    private boolean isSecurityApp(String packageName) {
+    public static boolean isSecurityApp(String packageName) {
         String lower = packageName.toLowerCase();
         return lower.contains("antivirus") ||
                 lower.contains("security") ||
@@ -279,9 +291,9 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                 lower.contains("guard");
     }
 
-    private boolean isPUPApp(String packageName, PackageInfo pkg) {
+    public static boolean isPUPApp(Context context, String packageName, PackageInfo pkg) {
         String lowerPkg = packageName.toLowerCase();
-        PackageManager pm = reactContext.getPackageManager();
+        PackageManager pm = context.getPackageManager();
         String lowerLabel = pkg.applicationInfo.loadLabel(pm).toString().toLowerCase();
 
         // Only target highly specific aggressive keywords usually associated with fake cleaner PUPs
@@ -293,9 +305,9 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                 lowerPkg.contains("ram-cleaner") || lowerLabel.contains("ram-cleaner");
     }
 
-    private boolean isSignedByGooglePlay(PackageInfo packageInfo) {
+    public static boolean isSignedByGooglePlay(Context context, PackageInfo packageInfo) {
         try {
-            PackageManager pm = reactContext.getPackageManager();
+            PackageManager pm = context.getPackageManager();
             String installer = pm.getInstallerPackageName(packageInfo.packageName);
             return "com.android.vending".equals(installer);
         } catch (Exception e) {
@@ -303,9 +315,9 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private boolean isHiddenApp(PackageInfo pkg) {
+    public static boolean isHiddenApp(Context context, PackageInfo pkg) {
         try {
-            PackageManager pm = reactContext.getPackageManager();
+            PackageManager pm = context.getPackageManager();
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
             intent.setPackage(pkg.packageName);
@@ -316,7 +328,7 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private String getApkHash(PackageInfo pkg) {
+    public static String getApkHash(PackageInfo pkg) {
         try {
             String apkPath = pkg.applicationInfo.sourceDir;
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -337,11 +349,11 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         }
     }
 
-    private boolean isSystemApp(PackageInfo pkg) {
+    public static boolean isSystemApp(PackageInfo pkg) {
         return (pkg.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
     }
 
-    private String getRiskLabel(int score) {
+    public static String getRiskLabel(int score) {
         if (score >= 100)
             return "CRITICAL";
         if (score >= 75)
@@ -351,9 +363,9 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         return "SAFE";
     }
 
-    private boolean isLauncherApp(String packageName) {
+    public static boolean isLauncherApp(Context context, String packageName) {
         try {
-            PackageManager pm = reactContext.getPackageManager();
+            PackageManager pm = context.getPackageManager();
             android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_MAIN);
             intent.addCategory(android.content.Intent.CATEGORY_HOME);
             java.util.List<android.content.pm.ResolveInfo> resolveInfos = pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
@@ -396,13 +408,13 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         if (hasBoot && hasOverlay)
             heuristics.pushString("Persistent Overlay behavior");
 
-        if (isPUPApp(pkg.packageName, pkg))
+        if (isPUPApp(reactContext, pkg.packageName, pkg))
             heuristics.pushString("Potentially Unwanted Program (Suspicious Utility/Adware patterns)");
 
-        if (isHiddenApp(pkg))
+        if (isHiddenApp(reactContext, pkg))
             heuristics.pushString("Hidden Application (No launcher icon - Background behavior)");
 
-        if (isPUPApp(pkg.packageName, pkg) && hasOverlay && hasInternet)
+        if (isPUPApp(reactContext, pkg.packageName, pkg) && hasOverlay && hasInternet)
             heuristics.pushString("Intrusive Behavior (Utility + Overlay + Ads potential)");
 
         String sha256 = getApkHash(pkg);
