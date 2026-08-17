@@ -1853,7 +1853,7 @@ function App(): React.JSX.Element {
 
                                             <TouchableOpacity
                                                 style={[styles.mainButton, { flex: 1, marginLeft: 5, backgroundColor: '#FFF', paddingVertical: 12 }]}
-                                                onPress={() => Linking.openURL('https://nopubly.com/portal.html?buy_package=antivirus-pro-1y')}
+                                                onPress={() => Linking.openURL(t.buyGoldUrl || 'https://buy.stripe.com/9B64gy54X3AO7TG4tL4gg04')}
                                             >
                                                 <Text style={[styles.mainButtonText, { color: '#000' }]}>{t.buyGold || 'BUY GOLD'}</Text>
                                             </TouchableOpacity>
