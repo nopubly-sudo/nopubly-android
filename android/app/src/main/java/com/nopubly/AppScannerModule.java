@@ -102,7 +102,7 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                 List<PackageInfo> packagesToScan = new java.util.ArrayList<>();
                 for (PackageInfo pkg : allPackages) {
                     if (isSystemApp(pkg) || pkg.packageName.equals("com.nopubly") ||
-                            TrustedApps.TRUSTED.contains(pkg.packageName) ||
+                            TrustedApps.isTrusted(pkg.packageName) ||
                             userTrusted.contains(pkg.packageName)) {
                         continue;
                     }
@@ -201,9 +201,11 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                 hasAdmin = true;
         }
 
+        boolean isHidden = isHiddenApp(context, packageInfo);
+        
         // Scoring rules
-        if (hasInternet && hasOverlay)
-            score += 40; // Phishing potential
+        if (hasInternet && hasOverlay && (hasAdmin || isHidden))
+            score += 40; // Phishing potential (Requires Admin or Hidden)
         if (hasInternet && hasSMS)
             score += 35; // SMS fraud
         if (hasInternet && (hasContacts || hasCallLog))
@@ -236,7 +238,6 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         }
 
         // Layer 8: Hidden App Detection (No Launcher Icon)
-        boolean isHidden = isHiddenApp(context, packageInfo);
         if (isHidden && !isSecurityApp && (hasInternet || hasBoot)) {
             score += 80; // Critical: Hidden background persistence
         }
@@ -389,6 +390,7 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
         boolean hasOverlay = false;
         boolean hasSMS = false;
         boolean hasBoot = false;
+        boolean hasAdmin = false;
 
         for (String perm : permissions) {
             if (perm.equals("android.permission.INTERNET"))
@@ -399,22 +401,27 @@ public class AppScannerModule extends ReactContextBaseJavaModule {
                 hasSMS = true;
             if (perm.equals("android.permission.RECEIVE_BOOT_COMPLETED"))
                 hasBoot = true;
+            if (perm.equals("android.permission.BIND_DEVICE_ADMIN"))
+                hasAdmin = true;
         }
 
-        if (hasInternet && hasOverlay)
-            heuristics.pushString("Potential Phishing (Overlay + Internet)");
+        boolean isHidden = isHiddenApp(reactContext, pkg);
+
+        if (hasInternet && hasOverlay && (hasAdmin || isHidden))
+            heuristics.pushString("Potential Phishing (Overlay + Internet + Hidden/Admin)");
         if (hasInternet && hasSMS)
             heuristics.pushString("SMS Fraud potential");
-        if (hasBoot && hasOverlay)
-            heuristics.pushString("Persistent Overlay behavior");
+        if (hasBoot && hasOverlay && (hasAdmin || isHidden))
+            heuristics.pushString("Persistent Overlay behavior (Hidden/Admin)");
 
-        if (isPUPApp(reactContext, pkg.packageName, pkg))
+        boolean isPUP = isPUPApp(reactContext, pkg.packageName, pkg);
+        if (isPUP)
             heuristics.pushString("Potentially Unwanted Program (Suspicious Utility/Adware patterns)");
 
-        if (isHiddenApp(reactContext, pkg))
+        if (isHidden)
             heuristics.pushString("Hidden Application (No launcher icon - Background behavior)");
 
-        if (isPUPApp(reactContext, pkg.packageName, pkg) && hasOverlay && hasInternet)
+        if (isPUP && hasOverlay && hasInternet && (hasAdmin || isHidden))
             heuristics.pushString("Intrusive Behavior (Utility + Overlay + Ads potential)");
 
         String sha256 = getApkHash(pkg);

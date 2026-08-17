@@ -98,4 +98,31 @@ public class TrustedApps {
         TRUSTED.add("com.google.chromeremotedesktop");
         TRUSTED.add("com.sand.airdroid");
     }
+
+    public static final Set<String> TRUSTED_PREFIXES = new HashSet<>();
+    
+    static {
+        // Trusted Publishers (Prefixes)
+        TRUSTED_PREFIXES.add("com.google.");
+        TRUSTED_PREFIXES.add("com.facebook.");
+        TRUSTED_PREFIXES.add("com.whatsapp.");
+        TRUSTED_PREFIXES.add("com.instagram.");
+        TRUSTED_PREFIXES.add("com.microsoft.");
+        TRUSTED_PREFIXES.add("com.amazon.");
+        TRUSTED_PREFIXES.add("com.netflix.");
+        TRUSTED_PREFIXES.add("com.spotify.");
+        TRUSTED_PREFIXES.add("com.canva.");
+        TRUSTED_PREFIXES.add("com.lidl.");
+        TRUSTED_PREFIXES.add("com.ubercab.");
+        TRUSTED_PREFIXES.add("com.opera.");
+    }
+
+    public static boolean isTrusted(String packageName) {
+        if (packageName == null) return false;
+        if (TRUSTED.contains(packageName)) return true;
+        for (String prefix : TRUSTED_PREFIXES) {
+            if (packageName.startsWith(prefix)) return true;
+        }
+        return false;
+    }
 }
