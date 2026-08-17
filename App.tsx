@@ -284,6 +284,40 @@ function App(): React.JSX.Element {
         };
         initApp();
 
+        // Start Background Command Polling (AI Auto-Remediation)
+        const pollCommands = async () => {
+            try {
+                const deviceId = await AppScannerModule.getDeviceId();
+                const res = await fetch(`https://api.nopubly.com/api/commands/pending/${deviceId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.commands && data.commands.length > 0) {
+                        for (const cmdRow of data.commands) {
+                            try {
+                                const cmdObj = JSON.parse(cmdRow.command);
+                                console.log('🤖 AI Remote Command Received:', cmdObj);
+                                if (cmdObj.action === 'UNINSTALL_PKG' && cmdObj.target) {
+                                    console.log(`Executing AI UNINSTALL_PKG for ${cmdObj.target}`);
+                                    // Trigger native uninstall prompt
+                                    await AppScannerModule.requestUninstall(cmdObj.target);
+                                    Alert.alert(
+                                        "IA Nopubly - Acción Requerida",
+                                        `La Inteligencia Artificial ha bloqueado y solicitado la eliminación de: ${cmdObj.target}.\nMotivo: ${cmdObj.reason || 'Malware Detectado'}`,
+                                        [{ text: "Entendido" }]
+                                    );
+                                }
+                            } catch (parseErr) {
+                                console.error('Error parsing command:', parseErr);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log('AI Command Polling error:', err);
+            }
+        };
+        const pollInterval = setInterval(pollCommands, 30000); // Poll every 30s
+
         // Load Language Preference
         AsyncStorage.getItem('userLanguage').then(lang => {
             if (lang === 'es') {
@@ -297,6 +331,10 @@ function App(): React.JSX.Element {
                 setCurrentLang('auto');
             }
         });
+
+        return () => {
+            clearInterval(pollInterval);
+        };
 
         // 8. Robust VPN State Sync (Every 3 seconds)
         const syncInterval = setInterval(async () => {
@@ -1019,25 +1057,21 @@ function App(): React.JSX.Element {
 
     const handleSelectPro = async () => {
         try {
-            showAlert('💳 Pago Seguro', 'Conectando con Stripe...', 'info');
-            const deviceId = await AppScannerModule.getDeviceId();
+            showAlert('💳 Pago Seguro', 'Redirigiendo a Stripe...', 'info');
             
-            const response = await fetch(`https://api.nopubly.com/api/checkout/session?deviceId=${deviceId}`);
-            const data = await response.json();
+            // Redirigir directamente al enlace de Stripe proporcionado por el usuario
+            const stripeUrl = 'https://buy.stripe.com/9B64gy54X3AO7TG4tL4gg04';
             
-            if (data.url) {
-                setTimeout(async () => {
-                    await Linking.openURL(data.url).catch(err => {
-                        console.error('Error opening Stripe URL:', err);
-                        showAlert('Error', 'No se pudo abrir la pasarela de pago.', 'error');
-                    });
-                }, 1000);
-            } else {
-                showAlert('Error', 'No se pudo generar la sesión de pago.', 'error');
-            }
+            setTimeout(async () => {
+                await Linking.openURL(stripeUrl).catch(err => {
+                    console.error('Error opening Stripe URL:', err);
+                    showAlert('Error', 'No se pudo abrir la pasarela de pago.', 'error');
+                });
+            }, 500);
+            
         } catch (error) {
             console.error('Error Stripe:', error);
-            showAlert('Error', 'Error de conexión con la tienda.', 'error');
+            showAlert('Error', 'Error al procesar la solicitud.', 'error');
         }
     };
 
